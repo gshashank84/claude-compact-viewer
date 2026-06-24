@@ -302,7 +302,7 @@ hr{border:0;border-top:1px solid var(--border);margin:18px 0}
   <div class="detail" id="detail"><div class="empty">Select a session on the left.</div></div>
 </div>
 <script>
-let SESSIONS=[], VISIBLE=[], CUR=null;
+let SESSIONS=[], VISIBLE=[], CUR=null, CUR_COMPS=[];
 const $=s=>document.querySelector(s);
 function fmtBytes(b){if(b>1e6)return (b/1e6).toFixed(1)+'MB';if(b>1e3)return (b/1e3).toFixed(0)+'KB';return b+'B';}
 function fmtTok(n){if(n==null)return '—';return (n/1000).toFixed(1)+'k';}
@@ -379,6 +379,11 @@ function renderSummary(text,cid){
   return {html:out,headings};
 }
 function toggleAll(open){document.querySelectorAll('#detail .comp').forEach(e=>e.classList.toggle('open',open));}
+function flash(btn,msg){const o=btn.textContent;btn.textContent=msg;setTimeout(()=>btn.textContent=o,1200);}
+function copyMd(i,btn){
+  const c=CUR_COMPS[i];if(!c){return;}
+  navigator.clipboard.writeText(c.text||'').then(()=>flash(btn,'copied ✓'),()=>flash(btn,'failed'));
+}
 function toggleRaw(btn){
   const body=btn.closest('.comp').querySelector('.body');
   const pre=body.querySelector('.raw-pre'),sum=body.querySelector('.sum');
@@ -389,7 +394,9 @@ function toggleRaw(btn){
 async function open_(id){
   CUR=id;render();
   const d=await (await fetch('/api/session?id='+id)).json();
+  CUR_COMPS=d.compactions||[];
   const resume=`claude --resume ${d.id}`;
+  const lastIdx=(d.compactions||[]).length-1;
   let toc='';
   let comps=(d.compactions||[]).map((c,i)=>{
     const last=i===d.compactions.length-1;
@@ -411,6 +418,7 @@ async function open_(id){
         <span class="lbl">Compaction #${c.index+1}${last?' · latest':''}</span>
         ${trig} ${delta} ${dur} ${pres}
         <span style="flex:1"></span>
+        <button class="linkbtn" onclick="copyMd(${i},this)" title="Copy this summary as markdown">copy md</button>
         ${r.html?`<button class="linkbtn" onclick="toggleRaw(this)">raw</button>`:''}
       </div>
       <div class="body">${bodyHtml}</div>
@@ -429,7 +437,11 @@ async function open_(id){
       <span class="pill">${d.numCompactions}× compacted</span>
       <span class="pill">${fmtBytes(d.sizeBytes)}</span>
     </div>
-    <div class="cmd"><span>${resume}</span><button onclick="navigator.clipboard.writeText('${resume}');this.textContent='copied'">copy</button></div>
+    <div class="cmd"><span>${resume}</span>
+      <span style="display:flex;gap:8px">
+        ${lastIdx>=0?`<button onclick="copyMd(${lastIdx},this)" title="Copy the latest compact summary as markdown — paste into another agent">copy latest summary</button>`:''}
+        <button onclick="navigator.clipboard.writeText('${resume}');flash(this,'copied ✓')">copy</button>
+      </span></div>
     ${d.cwd?`<div class="muted" style="font-size:12px;margin-bottom:6px">cwd: ${esc(d.cwd)}</div>`:''}
     ${toc}
     <div class="section-label">Compaction history (latest = what you'd resume with)<span class="sp"></span>${(d.compactions&&d.compactions.length>1)?`<button class="linkbtn" onclick="toggleAll(true)">expand all</button><button class="linkbtn" onclick="toggleAll(false)">collapse all</button>`:''}</div>

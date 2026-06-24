@@ -46,6 +46,7 @@ COMPACT_VIEWER_PORT=9000 compact-viewer   # use a different port
 - The **latest compact summary** rendered as readable sections (Primary Request, Key Technical Concepts, Pending tasks, Current work, …) — not a raw text wall. A **raw** toggle flips back to verbatim text.
 - A **section-jump** bar that scrolls to any heading in the latest summary.
 - The **full compaction history** for that session, each showing `trigger` (manual/auto), the `preTokens → postTokens` compression, duration, and how many recent messages were preserved verbatim. **Expand all / collapse all** for multi-compaction sessions.
+- **Copy as markdown** — a **copy latest summary** button (and a per-compaction **copy md** button) puts the summary on your clipboard verbatim. Handy when you hit a session/context limit and want to carry the state into a fresh session or a different coding agent.
 - A copy-able `claude --resume <session-id>` command.
 
 ### Keyboard shortcuts

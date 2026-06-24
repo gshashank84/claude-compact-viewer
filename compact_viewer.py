@@ -274,6 +274,7 @@ hr{border:0;border-top:1px solid var(--border);margin:18px 0}
 .sum ul{margin:6px 0 6px 4px;padding-left:18px}
 .sum li{margin:3px 0;color:#d2d7e3}
 .sum code{background:#0a0c10;border:1px solid var(--border);border-radius:4px;padding:0 5px;font:12px ui-monospace,Menlo,monospace;color:#a9d6ff}
+.sum pre.code-block{background:#0a0c10;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:8px 0;overflow:auto;white-space:pre;font:12px/1.55 ui-monospace,Menlo,monospace;color:#cdd6f4}
 .toc{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
 .toc a{font-size:11.5px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:3px 10px;color:var(--mut)}
 .toc a:hover{color:var(--fg);border-color:var(--acc)}
@@ -355,10 +356,17 @@ function mdInline(s){
 // Turn a compact summary's numbered-outline text into readable HTML + a heading list.
 function renderSummary(text,cid){
   const lines=(text||'').split('\n');
-  let out='',inList=false,hi=0;const headings=[];
+  let out='',inList=false,inCode=false,code='',hi=0;const headings=[];
   const closeList=()=>{if(inList){out+='</ul>';inList=false;}};
+  const flushCode=()=>{out+=`<pre class="code-block">${esc(code.replace(/\n$/,''))}</pre>`;inCode=false;code='';};
   for(const raw of lines){
     const t=raw.trim();
+    if(inCode){
+      if(t.startsWith('```')){flushCode();}
+      else{code+=raw+'\n';}
+      continue;
+    }
+    if(t.startsWith('```')){closeList();inCode=true;code='';continue;}
     if(!t){closeList();continue;}
     let m;
     if((m=t.match(/^(\d+)\.\s+(.*)/))&&/[A-Za-z]/.test(m[2])){
@@ -376,6 +384,7 @@ function renderSummary(text,cid){
     }
   }
   closeList();
+  if(inCode)flushCode();  // unterminated fence
   return {html:out,headings};
 }
 function toggleAll(open){document.querySelectorAll('#detail .comp').forEach(e=>e.classList.toggle('open',open));}
